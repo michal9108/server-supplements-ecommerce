@@ -15,17 +15,50 @@ import productsRoutes from "./routes/product.js";
 import reviewsRoutes from "./routes/reviews.js";
 import Stripe from "stripe";
 
-const stripe = new Stripe(
-  `${process.env.STRIPE_KEY}`,
-);
+
+const stripe = new Stripe(`${process.env.STRIPE_KEY}`);
 
 const env = dotenv.config({ path: "./.env" });
 /* CONFIGURATIONS */
 dotenv.config();
 // connect to express app
+
+
+
+
+const authenticateToken = async (req, res, next) => {
+  console.log('Inside authenticateToken middleware');
+
+  // Retrieve the token from the request headers
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
+
+  if (token == null) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    // Verify the token and extract the userId
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+
+    // Fetch user details based on userId
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    req.userId = decoded.userId; // Attach userId to the request object
+    next(); // Continue to the next middleware or route handler
+  } catch (error) {
+    return res.status(403).json({ error: "Invalid token" });
+  }
+};
+
 const app = express();
 
 //middleware
+app.use(authenticateToken);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
@@ -84,6 +117,8 @@ app.post("/register", async (req, res) => {
   }
 });
 
+
+
 //GET Registered Users
 app.get("/register", async (req, res) => {
   try {
@@ -93,6 +128,28 @@ app.get("/register", async (req, res) => {
     res.status(500).json({ error: "Unable to get users" });
   }
 });
+
+
+// app.get('/user/email', authenticateToken, async (req, res) => {
+//   try {
+//      Fetch user details based on userId
+//     const user = await User.findById(req.userId);
+
+//     if (!user) {
+//       return res.status(404).json({ error: 'User not found' });
+//     }
+
+//      Send user's email to the frontend
+//     res.status(200).json({ email: user.email });
+
+//   } catch (error) {
+//     console.log('Error fetching user email:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
+
+
+
 
 app.post("/login", async (req, res) => {
   try {
@@ -118,6 +175,7 @@ app.post("/login", async (req, res) => {
 
 app.post("/checkout", async (req, res) => {
   try {
+    console.log(req.body);
     const items = req.body.items;
     let lineItems = [];
     items.forEach((item) => {
@@ -128,15 +186,17 @@ app.post("/checkout", async (req, res) => {
     });
 
     const session = await stripe.checkout.sessions.create({
+      
+      success_url: `${process.env.FE_URL}/success?session_id={SESSION_ID}`,
+      cancel_url: `${process.env.FE_URL}/cancel`,
       line_items: lineItems,
       mode: "payment",
-      success_url: `${process.env.FE_URL}/success`,
-      cancel_url: `${process.env.FE_URL}/cancel`,
     });
 
     res.send(
       JSON.stringify({
         url: session.url,
+        customer_email: session.email,
       }),
     );
   } catch (error) {
