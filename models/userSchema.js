@@ -2,16 +2,17 @@ import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
 
-
-const userSchema = new Schema(
+const ReviewsSchema = new Schema(
   {
-  email: { type: String, required: true },
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-},
-{ timestamps: true },
+    title: String,
+    description: String,
+    name: String,
+    country: String,
+    showStar: Boolean,
+    verifiedBuyer: Boolean,
+  },
+  { timestamps: true },
 );
 
-const User = mongoose.model("User", userSchema);
-
-export default User;
+const Reviews = mongoose.model("Reviews", ReviewsSchema);
+export default Reviews;

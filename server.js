@@ -9,7 +9,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import Reviews from "./models/Reviews.js";
 import Product from "./models/Product.js";
-import User from "./models/userSchema.js";
+// import User from "./models/userSchema.js";
 import { items, reviews } from "./data/data.js";
 import productsRoutes from "./routes/product.js";
 import reviewsRoutes from "./routes/reviews.js";
@@ -22,8 +22,6 @@ const env = dotenv.config({ path: "./.env" });
 /* CONFIGURATIONS */
 dotenv.config();
 // connect to express app
-
-
 
 
 const authenticateToken = async (req, res, next) => {
